@@ -92,6 +92,7 @@ try:
                     columns=['Temperature', 'Air_Humidity', 'Soil_Humidity']
                 )
                 payload = {
+                    "Device": "Planterra",
                     "Temperature": temp,
                     "Air_Humidity": hum,
                     "Soil_Humidity": soil_hum,
@@ -109,6 +110,7 @@ try:
                     time.sleep(5)  # Pump runs for EXACTLY 5 seconds (adjust based on your pump size)
                     relay.off()    # Force the pump off
                     payload = {
+                        "Device": "Planterra",
                         "Relay": "on",
                         "Timestamp": datetime.datetime.now().isoformat()
                     }
