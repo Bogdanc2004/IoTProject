@@ -1,0 +1,213 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Planta - IoT Plant Monitoring Backend
+
+Globals:
+  Function:
+    Runtime: nodejs18.x
+    Timeout: 10
+    MemorySize: 128
+    Environment:
+      Variables:
+        PLANTS_TABLE: !Ref PlantsTable
+        SENSOR_DATA_TABLE: !Ref SensorDataTable
+
+Resources:
+  # --- Cognito User Pool ---
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: planta-users
+      AutoVerifiedAttributes:
+        - email
+      UsernameAttributes:
+        - email
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 6
+          RequireLowercase: false
+          RequireNumbers: false
+          RequireSymbols: false
+          RequireUppercase: false
+      Schema:
+        - Name: name
+          AttributeDataType: String
+          Mutable: true
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: planta-web-client
+      UserPoolId: !Ref UserPool
+      ExplicitAuthFlows:
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      GenerateSecret: false
+
+  # --- DynamoDB Tables ---
+  PlantsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: planta-plants
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: plantId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: plantId
+          KeyType: RANGE
+
+  SensorDataTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: planta-sensor-data
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: deviceId
+          AttributeType: S
+        - AttributeName: timestamp
+          AttributeType: N
+      KeySchema:
+        - AttributeName: deviceId
+          KeyType: HASH
+        - AttributeName: timestamp
+          KeyType: RANGE
+
+  # --- API Gateway ---
+  PlantaApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: planta-api
+      StageName: prod
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization'"
+        AllowOrigin: "'*'"
+      Auth:
+        DefaultAuthorizer: CognitoAuthorizer
+        Authorizers:
+          CognitoAuthorizer:
+            UserPoolArn: !GetAtt UserPool.Arn
+
+  # --- Lambda Functions ---
+  GetPlantsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: getPlants.handler
+      CodeUri: lambda/
+      Events:
+        GetPlants:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PlantaApi
+            Path: /plants
+            Method: GET
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref PlantsTable
+
+  CreatePlantFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: createPlant.handler
+      CodeUri: lambda/
+      Events:
+        CreatePlant:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PlantaApi
+            Path: /plants
+            Method: POST
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PlantsTable
+
+  DeletePlantFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: deletePlant.handler
+      CodeUri: lambda/
+      Events:
+        DeletePlant:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PlantaApi
+            Path: /plants/{plantId}
+            Method: DELETE
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref PlantsTable
+
+  GetSensorDataFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: getSensorData.handler
+      CodeUri: lambda/
+      Events:
+        GetSensorData:
+          Type: Api
+          Properties:
+            RestApiId: !Ref PlantaApi
+            Path: /sensors/{deviceId}
+            Method: GET
+      Policies:
+        - DynamoDBReadPolicy:
+            TableName: !Ref SensorDataTable
+
+  # --- IoT Rule (routes MQTT to DynamoDB) ---
+  IoTSensorRule:
+    Type: AWS::IoT::TopicRule
+    Properties:
+      RuleName: planta_sensor_ingest
+      TopicRulePayload:
+        Sql: "SELECT * FROM 'planta/+/sensors'"
+        Actions:
+          - DynamoDBv2:
+              RoleArn: !GetAtt IoTRuleRole.Arn
+              PutItem:
+                TableName: !Ref SensorDataTable
+
+  IoTRuleRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: iot.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: DynamoDBPut
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                Resource: !GetAtt SensorDataTable.Arn
+
+Outputs:
+  ApiEndpoint:
+    Description: API Gateway endpoint URL
+    Value: !Sub 'https://${PlantaApi}.execute-api.${AWS::Region}.amazonaws.com/prod'
+
+  UserPoolId:
+    Description: Cognito User Pool ID
+    Value: !Ref UserPool
+
+  UserPoolClientId:
+    Description: Cognito User Pool Client ID
+    Value: !Ref UserPoolClient
+
+  PlantsTableName:
+    Description: DynamoDB Plants table name
+    Value: !Ref PlantsTable
+
+  SensorDataTableName:
+    Description: DynamoDB Sensor Data table name
+    Value: !Ref SensorDataTable
