@@ -1,1 +1,7 @@
 venv/
+certs/
+
+#Paranoia ignore aws credentials
+*.pem
+*.key
+*.crt
