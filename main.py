@@ -116,7 +116,7 @@ try:
                     }
                     message = json.dumps(payload)
                     client.publish("test/topic", message, qos=1)
-                    print("Watering complete. Waiting 5 minutes for soil to absorb...")
+                    
                     
                     
                 else:  
