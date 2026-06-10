@@ -1,6 +1,6 @@
 venv/
 certs/
-
+*.env
 #Paranoia ignore aws credentials
 *.pem
 *.key
