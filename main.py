@@ -107,11 +107,18 @@ try:
                 if ai_decision == 1:  
                     print("AI decided: soil is dry. Pumping a dose of water...")
                     relay.on()
+                    payload = {
+                        "Device": "Planterra",
+                        "Relay": "on",
+                        "Timestamp": datetime.datetime.now().isoformat()
+                    }
+                    message = json.dumps(payload)
+                    client.publish("test/topic", message, qos=1)
                     time.sleep(5)  # Pump runs for EXACTLY 5 seconds (adjust based on your pump size)
                     relay.off()    # Force the pump off
                     payload = {
                         "Device": "Planterra",
-                        "Relay": "on",
+                        "Relay": "off",
                         "Timestamp": datetime.datetime.now().isoformat()
                     }
                     message = json.dumps(payload)
@@ -124,6 +131,13 @@ try:
                     # Ensure the relay is off, just in case
                     if relay.is_active:
                         relay.off()
+                        payload = {
+                            "Device": "Planterra",
+                            "Relay": "off",
+                            "Timestamp": datetime.datetime.now().isoformat()
+                        }
+                        message = json.dumps(payload)
+                        client.publish("test/topic", message, qos=1)
             else:
                 # If the DHT11 fails, we need to know about it.
                 print("Waiting for valid DHT11 sensor data...")
@@ -133,7 +147,7 @@ try:
             if relay.is_active:
                 relay.off()
         
-        # Standard heartbeat: check conditions every 3 seconds IF not currently watering
+        # Standard heartbeat: check conditions every 1h IF not currently watering
         time.sleep(3600)
 except KeyboardInterrupt:
     print("Program is closed")
