@@ -34,6 +34,11 @@ export default function AddPlantModal({ isOpen, onClose, onAdd }) {
       return;
     }
 
+    if (!deviceId.trim()) {
+      setError('Device ID is required to connect to your sensor');
+      return;
+    }
+
     try {
       setLoading(true);
       await onAdd({ name: name.trim(), type, deviceId: deviceId.trim() || undefined });
@@ -156,14 +161,17 @@ export default function AddPlantModal({ isOpen, onClose, onAdd }) {
               </div>
 
               <div className="form-group">
-                <label htmlFor="device-id">Device ID (optional)</label>
+                <label htmlFor="device-id">Device ID <span style={{ color: 'var(--status-danger)', fontWeight: 600 }}>*</span></label>
                 <input
                   id="device-id"
                   type="text"
-                  placeholder="e.g., device-001"
+                  placeholder="e.g., Planterra"
                   value={deviceId}
                   onChange={e => setDeviceId(e.target.value)}
                 />
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                  Must match the Device name from your IoT sensor
+                </span>
               </div>
             </div>
           </div>

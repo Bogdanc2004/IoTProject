@@ -71,7 +71,7 @@ export default function WateringIndicator({ data }) {
           </div>
           <div className="watering-detail">
             <span className="watering-detail-label">Soil moisture</span>
-            <span className="watering-detail-value">{latest.soilHumidity.toFixed(1)}%</span>
+            <span className="watering-detail-value">{latest.soilHumidity != null ? latest.soilHumidity.toFixed(1) : '—'}%</span>
           </div>
         </div>
       </div>

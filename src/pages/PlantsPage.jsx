@@ -63,6 +63,14 @@ export default function PlantsPage() {
           </svg>
           <h3>No plants yet</h3>
           <p>Add your first plant to start monitoring its health and environment.</p>
+          <button
+            className="btn-primary"
+            onClick={() => setShowModal(true)}
+            style={{ marginTop: 'var(--space-lg)' }}
+            id="add-first-plant-btn"
+          >
+            <PlusIcon /> Add Your First Plant
+          </button>
         </div>
       ) : (
         <div className="plants-grid">

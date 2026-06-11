@@ -193,9 +193,9 @@ export default function SensorChart({ data, timeRange = '24h' }) {
       x: mouseX,
       y: e.clientY - rect.top,
       time: formatTime(d.timestamp),
-      temperature: d.temperature.toFixed(1),
-      airHumidity: d.airHumidity.toFixed(1),
-      soilHumidity: d.soilHumidity.toFixed(1),
+      temperature: d.temperature != null ? d.temperature.toFixed(1) : '—',
+      airHumidity: d.airHumidity != null ? d.airHumidity.toFixed(1) : '—',
+      soilHumidity: d.soilHumidity != null ? d.soilHumidity.toFixed(1) : '—',
       relay: d.relay,
     });
   }

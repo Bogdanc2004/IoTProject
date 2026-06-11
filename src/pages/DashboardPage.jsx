@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { usePlants } from '../context/PlantContext';
 import { useSensorData } from '../hooks/useSensorData';
 import SensorCard from '../components/dashboard/SensorCard';
@@ -24,6 +25,10 @@ export default function DashboardPage() {
   useEffect(() => {
     if (plants.length > 0 && !selectedPlantId) {
       setSelectedPlantId(plants[0].id);
+    }
+    // Reset selection if all plants are removed
+    if (plants.length === 0) {
+      setSelectedPlantId(null);
     }
   }, [plants, selectedPlantId]);
 
@@ -75,7 +80,21 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {loading && !latest ? (
+      {plants.length === 0 ? (
+        <div className="empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M7 20h10" />
+            <path d="M10 20c5.5-2.5.8-6.4 3-10" />
+            <path d="M9.5 9.4c1.1.8 1.8 2.2 2.3 3.7-2 .4-3.5.4-4.8-.3-1.2-.6-2.3-1.9-3-4.2 2.8-.5 4.4 0 5.5.8z" />
+            <path d="M14.1 6a7 7 0 0 0-1.1 4c1.9-.1 3.3-.6 4.3-1.4 1-1 1.6-2.3 1.7-4.6-2.7.1-4 1-4.9 2z" />
+          </svg>
+          <h3>No plants added yet</h3>
+          <p>Add a plant and connect it to your IoT sensor to start monitoring live data.</p>
+          <Link to="/plants" className="btn-primary" style={{ marginTop: 'var(--space-lg)', display: 'inline-flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
+            Go to My Plants
+          </Link>
+        </div>
+      ) : loading && !latest ? (
         <div style={{ textAlign: 'center', padding: '64px 0' }}>
           <div className="spinner spinner--lg" />
           <p style={{ color: 'var(--text-muted)', marginTop: 16 }}>Loading sensor data...</p>
